@@ -1,0 +1,122 @@
+.profile-page {
+  padding: 60px 48px;
+  background: #f8fafc;
+  min-height: calc(100vh - 72px);
+}
+
+.profile-container {
+  max-width: 900px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 32px;
+}
+
+/* LEFT PANEL */
+.profile-left {
+  background: white;
+  padding: 32px 24px;
+  border-radius: var(--radius);
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.06);
+}
+
+.avatar-wrapper {
+  position: relative;
+  width: 120px;
+  margin: 0 auto 16px;
+}
+
+.avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), #60a5fa);
+  color: white;
+  font-size: 36px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-edit {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  font-size: 22px;
+  font-weight: bold;
+  border: none;
+}
+
+.username {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.role {
+  font-size: 14px;
+  color: var(--text-light);
+  margin-top: 4px;
+}
+
+.email {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--text-light);
+}
+
+/* RIGHT PANEL */
+.profile-right {
+  background: white;
+  padding: 32px;
+  border-radius: var(--radius);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.06);
+}
+
+.profile-right h3 {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8fafc;
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-size: 15px;
+}
+
+.activity-item span {
+  flex: 1;
+  margin-left: 10px;
+  color: var(--text-dark);
+}
+
+.activity-item strong {
+  color: var(--primary);
+}
+
+.edit-profile-btn {
+  margin-top: 28px;
+  padding: 12px 18px;
+  background: var(--primary);
+  color: white;
+  border-radius: 12px;
+  font-weight: 700;
+  width: fit-content;
+}

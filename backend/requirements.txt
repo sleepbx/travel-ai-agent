@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+python-dotenv
+sqlalchemy
+psycopg2-binary   # or sqlite for now
+passlib[bcrypt]
+python-jose
+pydantic

@@ -1,0 +1,57 @@
+.trip-details {
+  padding: 60px 48px;
+}
+
+.trip-details h1 {
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.subtitle {
+  color: var(--text-light);
+  margin-top: 6px;
+}
+
+.accordion {
+  margin-top: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.day-card {
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+}
+
+.day-header {
+  padding: 18px 22px;
+  display: flex;
+  justify-content: space-between;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.day-header:hover {
+  background: #f8fafc;
+}
+
+.day-body {
+  padding: 20px 22px;
+  border-top: 1px solid var(--border);
+}
+
+.day-body section {
+  margin-bottom: 14px;
+}
+
+.day-body h4 {
+  margin-bottom: 6px;
+}
+
+.day-total {
+  margin-top: 12px;
+  font-weight: 700;
+  color: var(--primary);
+}

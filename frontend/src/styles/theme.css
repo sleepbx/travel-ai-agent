@@ -1,0 +1,10 @@
+:root {
+  --primary: #2563eb;   /* blue */
+  --accent: #f97316;    /* orange */
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --text-dark: #0f172a;
+  --text-light: #64748b;
+  --border: #e2e8f0;
+  --radius: 14px;
+}
