@@ -2,7 +2,14 @@ fastapi
 uvicorn
 python-dotenv
 sqlalchemy
-psycopg2-binary   # or sqlite for now
+psycopg2-binary
 passlib[bcrypt]
 python-jose
 pydantic
+langgraph
+groq
+sentence-transformers
+faiss-cpu
+numpy
+pypdf
+requests

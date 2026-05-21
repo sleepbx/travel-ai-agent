@@ -1,16 +1,80 @@
-# React + Vite
+# TravelAI Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + Vite frontend for TravelAI.
 
-Currently, two official plugins are available:
+## What It Shows
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Home planner with flight, train, or bus transport selection
+- Authenticated dashboard for saved trips
+- Trip detail page with selected transport cards, hotel cards, day-wise itinerary, budget guardrails, and refinement prompts
+- Travel HQ for rate refreshes, readiness tasks, and quick AI commands
+- India Pulse cards with reliable travel images and live/search fallback results
+- AI Nearby Planner / Instant Escape page for short local plans, hidden gems, food trails, rainy-day backups, social sharing, and structured itinerary JSON
 
-## React Compiler
+## Transport UI
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Users can choose:
 
-## Expanding the ESLint configuration
+```text
+flight | train | bus
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+The selected mode is sent to the backend as:
+
+```json
+{
+  "transport_mode": "train"
+}
+```
+
+Trip cards display per-person fare and total fare separately. Flight rates are treated as per-person values, then multiplied by traveler count in the trip total.
+
+## Environment
+
+Create `frontend/.env`:
+
+```env
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```
+
+For deployment, point it at the deployed backend:
+
+```env
+VITE_API_BASE_URL=https://your-backend-domain.com
+```
+
+## Commands
+
+```powershell
+npm install
+npm run dev
+npm run lint
+npm run build
+npm run preview
+npm run start
+```
+
+If PowerShell blocks `npm.ps1`, use:
+
+```powershell
+npm.cmd run build
+```
+
+## Deployment Readiness
+
+The latest check passed:
+
+```text
+npm.cmd run lint
+npm.cmd run build
+```
+
+Vite writes the production bundle to `frontend/dist/`.
+
+For static hosting, deploy `frontend/dist` and set:
+
+```env
+VITE_API_BASE_URL=https://your-backend-domain.com
+```
+
+For container-style hosts, `npm run start` runs Vite preview and respects the platform `PORT`.

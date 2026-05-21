@@ -1,0 +1,152 @@
+.plan-trip {
+  display: grid;
+  grid-template-columns: minmax(0, 0.72fr) minmax(360px, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.plan-heading {
+  padding: clamp(24px, 4vw, 34px);
+  border-radius: 18px;
+  color: white;
+  background:
+    linear-gradient(180deg, rgba(15, 118, 110, 0.84), rgba(8, 47, 73, 0.72)),
+    url("https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1200&q=80");
+  background-position: center;
+  background-size: cover;
+  box-shadow: var(--shadow);
+}
+
+.plan-heading .eyebrow.dark {
+  color: white;
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.plan-heading h1 {
+  margin-top: 16px;
+  font-size: clamp(34px, 5vw, 54px);
+  line-height: 1;
+  font-weight: 900;
+}
+
+.plan-heading p {
+  margin-top: 14px;
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.plan-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: var(--shadow-soft);
+}
+
+.plan-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.plan-form label > span,
+.transport-choice > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-light);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.plan-form input,
+.plan-form select {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: white;
+  padding: 11px 12px;
+}
+
+.plan-form .wide {
+  grid-column: span 2;
+}
+
+.transport-choice {
+  display: grid;
+  gap: 8px;
+}
+
+.transport-choice > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.transport-choice button {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: white;
+  color: var(--text-dark);
+  font-weight: 900;
+}
+
+.transport-choice button.active {
+  border-color: rgba(15, 118, 110, 0.32);
+  background: #10201d;
+  color: white;
+  box-shadow: 0 12px 22px rgba(15, 32, 29, 0.16);
+}
+
+.plan-form button {
+  grid-column: span 2;
+  min-height: 48px;
+  border-radius: var(--radius);
+  background: var(--primary);
+  color: white;
+  font-weight: 900;
+  font-size: 16px;
+}
+
+.plan-form .form-error {
+  grid-column: span 2;
+  padding: 11px 12px;
+  border: 1px solid rgba(225, 29, 72, 0.22);
+  border-radius: var(--radius);
+  background: rgba(225, 29, 72, 0.08);
+  color: #9f1239;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+@media (max-width: 900px) {
+  .plan-trip {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .plan-form {
+    grid-template-columns: 1fr;
+  }
+
+  .plan-form .wide,
+  .plan-form button,
+  .plan-form .form-error {
+    grid-column: auto;
+  }
+
+  .transport-choice > div {
+    grid-template-columns: 1fr;
+  }
+}

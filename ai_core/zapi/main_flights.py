@@ -13,7 +13,7 @@ def search_flights_serpapi(
     depart_date: str,
     return_date: str,
     passengers: int = 1,
-    cabin_class: str = "economy",
+    cabin_class: str = "premium_economy",
     currency: str = "INR",
     max_results: int = 5,
 ):
@@ -39,7 +39,12 @@ def search_flights_serpapi(
         "outbound_date": depart_date,
         "return_date": return_date,
         "adults": passengers,
-        "travel_class": cabin_class,
+        "travel_class": {
+            "economy": 1,
+            "premium_economy": 2,
+            "business": 3,
+            "first": 4,
+        }.get(cabin_class, 2),
         "type": 1,              # 1 = round trip
         "currency": currency,
         "hl": "en",

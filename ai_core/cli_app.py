@@ -21,6 +21,10 @@ def main():
         "Cabin class (economy/premium_economy/business/first) [default economy]: "
     ).strip() or "economy"
 
+    transport_mode = input(
+        "Preferred transport (flight/train/bus) [default flight]: "
+    ).strip() or "flight"
+
     interests = input(
         "Your interests (food/nightlife/history/adventure/etc) [default sightseeing]: "
     ).strip() or "sightseeing"
@@ -56,6 +60,7 @@ def main():
             return_date=return_date,
             passengers=passengers,
             cabin_class=cabin_class,
+            transport_mode=transport_mode,
             interests=interests,
             max_budget=max_budget,
         )

@@ -41,6 +41,7 @@ class CreateTripRequest(BaseModel):
     return_date: str
     passengers: int = 2
     cabin_class: str = "economy"
+    transport_mode: str = "flight"
     interests: str = "sightseeing"
     max_budget: int | None = None
 
@@ -102,7 +103,7 @@ def refine_trip_api(
     db.commit()
     db.refresh(trip)
 
-    # 🔥 Save refinement as new version
+    # Save refinement as a new version.
     save_trip_version(
         db=db,
         trip_id=trip.id,
@@ -141,12 +142,12 @@ def rollback_trip_api(
     if not version:
         raise HTTPException(status_code=404, detail="Version not found")
 
-    # ⏪ Rollback itinerary
+    # Roll back itinerary.
     trip.itinerary = version.itinerary
     db.commit()
     db.refresh(trip)
 
-    # 🔥 Save rollback as a NEW version
+    # Save rollback as a new version.
     save_trip_version(
         db=db,
         trip_id=trip.id,

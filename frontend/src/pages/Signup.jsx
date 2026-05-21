@@ -1,6 +1,8 @@
 import "./Auth.css";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { LockKeyhole, Mail, UserPlus, UserRound } from "lucide-react";
+import { apiUrl } from "../lib/api";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -14,7 +16,7 @@ export default function Signup() {
     setError("");
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/auth/signup", {
+      const res = await fetch(apiUrl("/auth/signup"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -30,7 +32,6 @@ export default function Signup() {
         throw new Error("Signup failed. Email may already exist.");
       }
 
-      // ✅ Signup successful → go to login
       navigate("/login");
     } catch (err) {
       setError(err.message || "Signup failed");
@@ -40,31 +41,26 @@ export default function Signup() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h2>Create your account ✨</h2>
-        <p className="auth-subtitle">Start planning smarter trips with AI</p>
+        <div className="auth-icon"><UserPlus size={24} /></div>
+        <h2>Create your account</h2>
+        <p className="auth-subtitle">Start planning smarter trips with AI.</p>
 
-        <input
-          type="text"
-          placeholder="Full name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
+        <label className="auth-field">
+          <span><UserRound size={15} /> Full name</span>
+          <input type="text" placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} />
+        </label>
 
-        <input
-          type="email"
-          placeholder="Email address"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+        <label className="auth-field">
+          <span><Mail size={15} /> Email</span>
+          <input type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+        </label>
 
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <label className="auth-field">
+          <span><LockKeyhole size={15} /> Password</span>
+          <input type="password" placeholder="Choose a password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        </label>
 
-        {error && <p style={{ color: "red" }}>{error}</p>}
+        {error && <p className="auth-error">{error}</p>}
 
         <button className="auth-btn" onClick={handleSignup}>
           Sign up

@@ -1,30 +1,11 @@
-from duckduckgo_search import DDGS
+from ai_core.web_search import travel_web_search
 
 
 def web_search(query: str, max_results: int = 5) -> str:
     """
-    Simple web search using DuckDuckGo.
-    Returns a short, merged text summary of top results.
+    Cached live travel search.
+
+    Uses SerpAPI when SERPAPI_KEY is set, then Serper when SERPER_API_KEY is set.
+    The function returns a compact text block that is safe to pass into prompts.
     """
-    query = query.strip()
-    if not query:
-        return "No query provided to web search."
-
-    try:
-        results_text = []
-
-        with DDGS() as ddgs:
-            for r in ddgs.text(query, max_results=max_results):
-                title = r.get("title", "")
-                snippet = r.get("body", "")
-                link = r.get("href", "")
-                if title or snippet:
-                    results_text.append(f"- {title}\n  {snippet}\n  ({link})")
-
-        if not results_text:
-            return "No useful web results found."
-
-        # Join a few top results into one block
-        return "Top web results:\n" + "\n\n".join(results_text)
-    except Exception as e:
-        return f"Error performing web search: {e}"
+    return travel_web_search(query=query, max_results=max_results)

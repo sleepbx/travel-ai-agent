@@ -3,6 +3,11 @@
 # -------------------------------
 fastapi
 uvicorn
+sqlalchemy
+pydantic
+passlib[bcrypt]
+python-jose
+psycopg2-binary
 
 # -------------------------------
 # Environment & Config
@@ -17,6 +22,7 @@ groq
 # -------------------------------
 # RAG & Embeddings
 # -------------------------------
+langgraph
 sentence-transformers
 faiss-cpu
 numpy

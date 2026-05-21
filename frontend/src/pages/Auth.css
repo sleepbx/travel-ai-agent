@@ -1,58 +1,101 @@
 .auth-page {
   min-height: calc(100vh - 72px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #eef2ff, #f8fafc);
+  display: grid;
+  place-items: center;
+  padding: 34px 18px;
+  background:
+    linear-gradient(90deg, rgba(8, 47, 73, 0.68), rgba(15, 118, 110, 0.42)),
+    url("https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1600&q=80");
+  background-position: center;
+  background-size: cover;
 }
 
 .auth-card {
-  background: white;
-  padding: 36px 32px;
-  width: 360px;
+  width: min(100%, 410px);
+  padding: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow);
+}
+
+.auth-icon {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
   border-radius: var(--radius);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
-  text-align: center;
+  background: rgba(15, 118, 110, 0.1);
+  color: var(--primary);
 }
 
 .auth-card h2 {
-  font-size: 24px;
-  font-weight: 700;
+  margin-top: 18px;
+  font-size: 28px;
+  line-height: 1.1;
+  font-weight: 900;
 }
 
 .auth-subtitle {
-  margin-top: 6px;
-  font-size: 14px;
+  margin-top: 8px;
   color: var(--text-light);
+  font-size: 14px;
 }
 
-.auth-card input {
-  width: 100%;
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
   margin-top: 16px;
-  padding: 14px;
-  border-radius: 10px;
+}
+
+.auth-field span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-light);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.auth-field input {
+  width: 100%;
+  min-height: 46px;
+  padding: 11px 12px;
+  border-radius: var(--radius);
   border: 1px solid var(--border);
+  background: white;
+}
+
+.auth-error {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: #fff1f2;
+  color: #be123c;
   font-size: 14px;
+  font-weight: 800;
 }
 
 .auth-btn {
-  margin-top: 22px;
+  margin-top: 20px;
   width: 100%;
-  padding: 14px;
+  min-height: 48px;
   background: var(--primary);
   color: white;
-  font-weight: 700;
-  border-radius: 12px;
+  font-weight: 900;
+  border-radius: var(--radius);
   font-size: 15px;
 }
 
 .auth-footer {
   margin-top: 18px;
-  font-size: 14px;
   color: var(--text-light);
+  font-size: 14px;
+  text-align: center;
 }
 
 .auth-footer a {
-  color: var(--primary);
-  font-weight: 600;
+  color: var(--primary-strong);
+  font-weight: 900;
 }

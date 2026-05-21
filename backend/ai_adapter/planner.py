@@ -16,6 +16,7 @@ def generate_trip_itinerary(data) -> str:
         return_date=data.return_date,
         passengers=data.passengers,
         cabin_class=data.cabin_class,
+        transport_mode=getattr(data, "transport_mode", "flight"),
         interests=data.interests,
         max_budget=data.max_budget,
     )
