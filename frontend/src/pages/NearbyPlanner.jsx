@@ -79,30 +79,6 @@ const LOADING_STEPS = [
   "Scanning opening hours and crowd windows...",
   "Building your cinematic route...",
 ];
-const STOP_IMAGES = [
-  "https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=1100&q=80",
-  "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1100&q=80",
-  "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1100&q=80",
-  "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1100&q=80",
-  "https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=1100&q=80",
-  "https://images.unsplash.com/photo-1501446529957-6226bd447c46?auto=format&fit=crop&w=1100&q=80",
-  "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1100&q=80",
-  "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1100&q=80",
-  "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1100&q=80",
-  "https://images.unsplash.com/photo-1481833761820-0509d3217039?auto=format&fit=crop&w=1100&q=80",
-  "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1100&q=80",
-  "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=1100&q=80",
-  "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1100&q=80",
-  "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1100&q=80",
-  "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=1100&q=80",
-  "https://images.unsplash.com/photo-1528823872057-9c018a7a7553?auto=format&fit=crop&w=1100&q=80",
-];
-
-function placeImageUrl(title, location = "", kind = "travel") {
-  const query = [title, location, kind, "nearby"].filter(Boolean).join(" ");
-  return `https://source.unsplash.com/1100x760/?${encodeURIComponent(query)}`;
-}
-
 const initialState = {
   location: "",
   detectedCity: "Detecting nearby city",
@@ -154,17 +130,6 @@ function formatInr(value) {
   return `INR ${Number(value || 0).toLocaleString("en-IN")}`;
 }
 
-function durationHours(duration, customDuration) {
-  if (duration === "2 Hours") return 2;
-  if (duration === "4 Hours") return 4;
-  if (duration === "Half Day") return 6;
-  if (duration === "Full Day") return 10;
-  if (duration === "Weekend") return 32;
-  if (duration === "2 Days") return 44;
-  const match = String(customDuration || "").match(/\d+/);
-  return match ? Number(match[0]) : 5;
-}
-
 function tripName(form) {
   const mood = form.moods[form.moods.length - 1] || "Nearby";
   const group = form.groupType === "Solo" ? "Solo" : form.groupType;
@@ -173,421 +138,22 @@ function tripName(form) {
   return `${group} ${mood} Nearby Plan`;
 }
 
-function durationBucket(hours) {
-  if (hours <= 2) return "micro";
-  if (hours <= 5) return "short";
-  if (hours <= 10) return "day";
-  return "escape";
+function signalValue(value, fallback = "Estimate") {
+  if (value && typeof value === "object" && "value" in value) return value.value || fallback;
+  return value || fallback;
 }
 
-function moodWeights(moods) {
-  return moods.reduce((weights, mood, index) => ({ ...weights, [mood]: 6 + index * 2 }), {});
+function signalFor(plan, key) {
+  return plan?.summary?.signals?.[key] || null;
 }
 
-function seedValue(form) {
-  return [
-    form.location || form.detectedCity,
-    form.duration,
-    form.customDuration,
-    form.moods.join(","),
-    form.budget,
-    form.transport,
-    form.radius,
-    form.groupType,
-    form.surpriseMe,
-  ].join("|");
-}
-
-function seedBonus(seed, title) {
-  const text = `${seed}:${title}`;
-  let hash = 0;
-  for (let index = 0; index < text.length; index += 1) {
-    hash = (hash * 31 + text.charCodeAt(index)) % 997;
-  }
-  return hash % 4;
-}
-
-function pickStops(form) {
-  const library = [
-    {
-      title: form.surpriseMe ? "Rooftop Sunset Nook" : "Skyline Viewpoint",
-      description: "A compact golden-hour stop with a short walk, clean views, and enough quiet to reset.",
-      baseCost: 0,
-      image: STOP_IMAGES[0],
-      tags: ["Hidden Gems", "Photography", "Romantic"],
-      groups: ["Couple", "Solo", "Friends"],
-      transports: ["Car", "Bike"],
-      radii: ["Within 20 km", "1-hour drive"],
-      durations: ["micro", "short", "day"],
-      why: "You are about 20 mins away from a low-friction sunset spot that matches the current mood mix.",
-    },
-    {
-      title: "Chef-Led Street Food Lane",
-      description: "A walkable food stretch with snacks, dessert, and one sit-down option if the group slows down.",
-      baseCost: 520,
-      image: STOP_IMAGES[1],
-      tags: ["Food", "Family", "Nightlife"],
-      groups: ["Friends", "Family", "Office Team"],
-      transports: ["Metro", "Walking", "Public Transport"],
-      radii: ["Within 5 km", "Within 20 km"],
-      durations: ["micro", "short", "day"],
-      why: "It gives the plan a social anchor without needing a booking or a long commute.",
-    },
-    {
-      title: "Design Museum and Cafe",
-      description: "Indoor galleries, a covered cafe, and a backup bookstore nearby if rain arrives early.",
-      baseCost: 420,
-      image: STOP_IMAGES[2],
-      tags: ["Rainy Day", "Relax", "Photography"],
-      groups: ["Solo", "Couple", "Family"],
-      transports: ["Metro", "Car", "Public Transport"],
-      radii: ["Within 5 km", "Within 20 km"],
-      durations: ["short", "day"],
-      why: "Rain risk is handled with an indoor backup that still feels like an outing.",
-    },
-    {
-      title: "Leafy Lake Loop",
-      description: "A calm nature loop for photos, air, and an easy decompression window.",
-      baseCost: 80,
-      image: STOP_IMAGES[3],
-      tags: ["Nature", "Relax", "Solo Recharge", "Photography"],
-      groups: ["Solo", "Couple", "Family"],
-      transports: ["Walking", "Bike", "Car"],
-      radii: ["Within 5 km", "Within 20 km"],
-      durations: ["micro", "short", "day"],
-      why: "AQI and crowd signals favor a lighter outdoor window before evening traffic builds.",
-    },
-    {
-      title: "Candlelit Courtyard Dinner",
-      description: "A soft-lit stop with reliable seating, warm drinks, and a second cafe within walking distance.",
-      baseCost: 1200,
-      image: STOP_IMAGES[4],
-      tags: ["Romantic", "Coffee", "Luxury"],
-      groups: ["Couple"],
-      transports: ["Car", "Metro"],
-      radii: ["Within 20 km"],
-      durations: ["short", "day"],
-      why: "This keeps the final hour emotionally warm and reduces last-minute venue hunting.",
-    },
-    {
-      title: "Maker Market Arcade",
-      description: "A compact set of local stores, stationery, handmade finds, and giftable food counters.",
-      baseCost: 900,
-      image: STOP_IMAGES[5],
-      tags: ["Shopping", "Hidden Gems", "Family"],
-      groups: ["Friends", "Family", "Couple"],
-      transports: ["Metro", "Walking", "Car"],
-      radii: ["Within 5 km", "Within 20 km"],
-      durations: ["short", "day"],
-      why: "It creates a flexible browsing window that can expand or shrink based on energy.",
-    },
-    {
-      title: "Quiet Temple Courtyard",
-      description: "A peaceful courtyard with low noise, short rituals, and an easy exit route.",
-      baseCost: 40,
-      image: STOP_IMAGES[6],
-      tags: ["Spiritual", "Relax", "Solo Recharge"],
-      groups: ["Solo", "Family", "Couple"],
-      transports: ["Walking", "Metro", "Public Transport"],
-      radii: ["Within 5 km", "Within 20 km"],
-      durations: ["micro", "short"],
-      why: "It adds a reflective stop without making the plan feel heavy or over-scheduled.",
-    },
-    {
-      title: "Live Music Pocket",
-      description: "A small-format music venue timed before the late-night surge.",
-      baseCost: 850,
-      image: STOP_IMAGES[7],
-      tags: ["Nightlife", "Friends", "Romantic"],
-      groups: ["Friends", "Couple", "Office Team"],
-      transports: ["Car", "Metro"],
-      radii: ["Within 20 km", "1-hour drive"],
-      durations: ["short", "day"],
-      why: "The set starts before peak traffic and leaves room for a graceful exit.",
-    },
-    {
-      title: "Bouldering and Brew Session",
-      description: "A guided climbing block followed by a low-key brew stop nearby.",
-      baseCost: 1100,
-      image: STOP_IMAGES[8],
-      tags: ["Adventure", "Friends", "Photography"],
-      groups: ["Friends", "Office Team", "Solo"],
-      transports: ["Bike", "Car", "Metro"],
-      radii: ["Within 20 km", "1-hour drive"],
-      durations: ["short", "day"],
-      why: "It gives the route a real activity peak without spending the whole day in transit.",
-    },
-    {
-      title: "Indie Art Walk",
-      description: "Murals, micro-galleries, design stores, and a coffee pause in a walkable cluster.",
-      baseCost: 300,
-      image: STOP_IMAGES[9],
-      tags: ["Photography", "Hidden Gems", "Shopping", "Solo Recharge"],
-      groups: ["Solo", "Friends", "Couple"],
-      transports: ["Walking", "Metro", "Public Transport"],
-      radii: ["Within 5 km", "Within 20 km"],
-      durations: ["micro", "short", "day"],
-      why: "The plan stays easy to explore on foot and still feels discovery-led.",
-    },
-    {
-      title: "Luxury Spa and High Tea",
-      description: "A polished reset with reserved seating, quieter service, and a premium indoor backup.",
-      baseCost: 2400,
-      image: STOP_IMAGES[10],
-      tags: ["Luxury", "Relax", "Romantic", "Rainy Day"],
-      groups: ["Couple", "Solo"],
-      transports: ["Car"],
-      radii: ["Within 20 km", "1-hour drive"],
-      durations: ["short", "day"],
-      why: "Budget and mood allow one elevated anchor instead of many average stops.",
-    },
-    {
-      title: "Family Science and Dessert Loop",
-      description: "Hands-on exhibits, a snack break, and a dessert stop that works across ages.",
-      baseCost: 950,
-      image: STOP_IMAGES[11],
-      tags: ["Family", "Rainy Day", "Food"],
-      groups: ["Family"],
-      transports: ["Car", "Metro", "Public Transport"],
-      radii: ["Within 5 km", "Within 20 km"],
-      durations: ["short", "day"],
-      why: "It keeps kids, adults, weather, and food breaks in one manageable loop.",
-    },
-    {
-      title: "Golden Hour Nature Drive",
-      description: "A scenic outer-edge drive with one viewpoint, one snack stop, and a flexible return.",
-      baseCost: 700,
-      image: STOP_IMAGES[12],
-      tags: ["Nature", "Adventure", "Photography", "Romantic"],
-      groups: ["Couple", "Friends", "Family"],
-      transports: ["Car", "Bike"],
-      radii: ["1-hour drive", "3-hour drive"],
-      durations: ["day", "escape"],
-      why: "Your radius allows a wider route, so the plan spends budget on scenery rather than tickets.",
-    },
-    {
-      title: "Hidden Vineyard Lunch",
-      description: "A slower road-trip lunch with a scenic table, photo stops, and a no-rush return window.",
-      baseCost: 1800,
-      image: STOP_IMAGES[13],
-      tags: ["Luxury", "Food", "Romantic", "Hidden Gems"],
-      groups: ["Couple", "Friends"],
-      transports: ["Car"],
-      radii: ["3-hour drive", "1-hour drive"],
-      durations: ["day", "escape"],
-      why: "Weekend-style timing supports a memorable anchor experience outside the usual city loop.",
-    },
-    {
-      title: "Team Game Arena",
-      description: "Bowling, arcade games, quick food, and easy split-bill timing for a group.",
-      baseCost: 1300,
-      image: STOP_IMAGES[14],
-      tags: ["Adventure", "Nightlife", "Food", "Rainy Day"],
-      groups: ["Office Team", "Friends", "Family"],
-      transports: ["Car", "Metro"],
-      radii: ["Within 20 km"],
-      durations: ["short", "day"],
-      why: "It is weather-safe, group-friendly, and keeps everyone active without complex logistics.",
-    },
-    {
-      title: "Bookstore Recharge Cafe",
-      description: "A quiet bookstore-cafe hybrid for journaling, reading, coffee, and solo decompression.",
-      baseCost: 280,
-      image: STOP_IMAGES[15],
-      tags: ["Solo Recharge", "Relax", "Rainy Day", "Spiritual"],
-      groups: ["Solo"],
-      transports: ["Walking", "Metro", "Public Transport"],
-      radii: ["Within 5 km", "Within 20 km"],
-      durations: ["micro", "short"],
-      why: "It protects your energy and keeps the plan satisfying even with limited time.",
-    },
-  ];
-
-  const hours = durationHours(form.duration, form.customDuration);
-  const count = hours <= 2 ? 2 : hours <= 5 ? 3 : hours <= 10 ? 4 : 5;
-  const bucket = durationBucket(hours);
-  const weights = moodWeights(form.moods);
-  const seed = seedValue(form);
-  const scored = library
-    .map((stop) => {
-      const tagScore = stop.tags.reduce((score, tag) => score + (weights[tag] || 0), 0);
-      const groupScore = stop.groups?.includes(form.groupType) ? 5 : 0;
-      const transportScore = stop.transports?.includes(form.transport) ? 4 : 0;
-      const radiusScore = stop.radii?.includes(form.radius) ? 3 : 0;
-      const durationScore = stop.durations?.includes(bucket) ? 3 : 0;
-      const surpriseScore = form.surpriseMe && stop.tags.includes("Hidden Gems") ? 4 : 0;
-      const costScore = stop.baseCost <= form.budget * 0.45 ? 3 : stop.baseCost > form.budget * 0.85 ? -5 : 0;
-      return {
-        ...stop,
-        score:
-          tagScore +
-          groupScore +
-          transportScore +
-          radiusScore +
-          durationScore +
-          surpriseScore +
-          costScore +
-          seedBonus(seed, stop.title),
-      };
-    })
-    .sort((a, b) => b.score - a.score || a.baseCost - b.baseCost);
-
-  const chosen = [];
-  const chosenTitles = new Set();
-
-  [...form.moods].reverse().forEach((mood) => {
-    const match =
-      scored.find((stop) => stop.tags.includes(mood) && stop.durations?.includes(bucket) && !chosenTitles.has(stop.title)) ||
-      scored.find((stop) => stop.tags.includes(mood) && !chosenTitles.has(stop.title));
-    if (match && chosen.length < count) {
-      chosen.push(match);
-      chosenTitles.add(match.title);
-    }
-  });
-
-  scored.forEach((stop) => {
-    if (chosen.length < count && !chosenTitles.has(stop.title)) {
-      chosen.push(stop);
-      chosenTitles.add(stop.title);
-    }
-  });
-
-  return chosen;
-}
-
-function buildNearbyPlan(form) {
-  const stops = pickStops(form);
-  const hours = durationHours(form.duration, form.customDuration);
-  const commuteUnit = form.transport === "Walking" ? 9 : form.transport === "Bike" ? 11 : form.transport === "Metro" ? 16 : 18;
-  const foodBudget = Math.round(form.budget * (form.moods.includes("Food") ? 0.42 : 0.3));
-  const transportBudget = Math.round(form.budget * (form.transport === "Walking" ? 0.08 : 0.18));
-  const ticketBudget = Math.round(form.budget * 0.18);
-  const shoppingBudget = Math.round(form.budget * (form.moods.includes("Shopping") ? 0.2 : 0.1));
-  const bufferBudget = Math.max(150, form.budget - foodBudget - transportBudget - ticketBudget - shoppingBudget);
-  const weather = form.moods.includes("Rainy Day") ? "Cloudy, rain backup active" : "Warm with a clear evening window";
-  const now = new Date();
-  const leaveHour = hours <= 4 ? now.getHours() + 1 : 9;
-  const bestLeave = `${String(Math.min(leaveHour, 21)).padStart(2, "0")}:15`;
-  const baseLat = form.coordinates.lat;
-  const baseLng = form.coordinates.lng;
-
-  const normalizedStops = stops.map((stop, index) => {
-    const lat = Number((baseLat + (index + 1) * 0.009 - (index % 2) * 0.006).toFixed(5));
-    const lng = Number((baseLng + (index + 1) * 0.008 + (index % 2) * 0.005).toFixed(5));
-    return {
-      id: `stop-${index + 1}`,
-      sequence: index + 1,
-      title: stop.title,
-      image: placeImageUrl(stop.title, form.location || form.detectedCity, stop.tags?.[0] || "nearby"),
-      description: stop.description,
-      eta: index === 0 ? bestLeave : `+${index * commuteUnit + index * 45} mins`,
-      ideal_visit_duration: hours <= 2 ? "40 mins" : index === stops.length - 1 ? "75 mins" : "55 mins",
-      estimated_cost: formatInr(Math.min(stop.baseCost, Math.max(0, form.budget - 250))),
-      travel_time_to_next: index === stops.length - 1 ? "Return when ready" : `${commuteUnit + index * 4} mins`,
-      crowd_level: index === 0 ? "Low now" : index === stops.length - 1 ? "Medium later" : "Balanced",
-      weather_suitability: form.moods.includes("Rainy Day") || stop.tags.includes("Rainy Day") ? "Indoor-safe" : "Good",
-      opening_hours: index === stops.length - 1 ? "Open till 11:00 PM" : "Open now",
-      why_ai_picked_this: stop.why,
-      mood_tags: stop.tags,
-      coordinates: { lat, lng },
-      backup_plan: stop.tags.includes("Rainy Day") ? "Covered cafe table held as backup" : "Indoor cafe fallback within 700 m",
-    };
-  });
-  const primaryMood = form.moods[form.moods.length - 1] || "your mood";
-  const leadStop = normalizedStops[0]?.title || "a nearby escape";
-
-  return {
-    summary: {
-      title: tripName(form),
-      location: form.location || form.detectedCity,
-      total_duration: form.duration === "Custom" ? form.customDuration || "Custom" : form.duration,
-      estimated_budget: formatInr(form.budget),
-      total_travel_distance: form.radius === "Within 5 km" ? "4.8 km" : form.radius === "Within 20 km" ? "16.4 km" : form.radius,
-      weather_snapshot: weather,
-      best_time_to_leave: bestLeave,
-      vibe_tags: [...form.moods, form.groupType, form.transport].slice(0, 7),
-      magic_touch: `Your strongest match is ${leadStop}, tuned for ${primaryMood.toLowerCase()} energy and ${form.transport.toLowerCase()} timing.`,
-    },
-    stops: normalizedStops,
-    timing: {
-      generated_at: now.toISOString(),
-      best_leave: bestLeave,
-      golden_hour: "17:42 - 18:22",
-      nightlife_window: form.moods.includes("Nightlife") ? "20:00 - 23:15" : "Optional after 20:30",
-      traffic_note: "Traffic expected after 19:00, route keeps the longest hop before then.",
-      rainy_day_cutover: "If rain starts after 20:00, switch to the indoor backup at stop 3.",
-    },
-    costs: {
-      food: formatInr(foodBudget),
-      transport: formatInr(transportBudget),
-      tickets: formatInr(ticketBudget),
-      shopping: formatInr(shoppingBudget),
-      buffer: formatInr(bufferBudget),
-      total: formatInr(foodBudget + transportBudget + ticketBudget + shoppingBudget + bufferBudget),
-    },
-    route: {
-      mode: form.transport,
-      radius: form.radius,
-      optimized_order: normalizedStops.map((stop) => stop.title),
-      estimated_commute_time: `${Math.max(18, (normalizedStops.length - 1) * commuteUnit)} mins`,
-      transport_aware_routing: `${form.transport} route balanced for commute time, crowd levels, and opening windows.`,
-      traffic_awareness: "Avoids the densest outbound leg after 19:00.",
-      map_coordinates: normalizedStops.map((stop) => stop.coordinates),
-    },
-    insights: [
-      "This cafe is less crowded after 17:00.",
-      "Perfect sunset timing at the viewpoint if you leave by the suggested time.",
-      "Traffic expected after 19:00, so the route front-loads the longest commute.",
-      form.moods.includes("Rainy Day")
-        ? "Rain likely later, indoor backup added before the last stop."
-        : "Weather is outdoor-friendly, with a cafe fallback if wind picks up.",
-      "AQI-aware filter keeps the outdoor block short and close to greenery.",
-      "Live opening-hour hooks are ready for future place APIs.",
-    ],
-    alternates: [
-      {
-        id: "cheaper",
-        title: "Cheaper version",
-        budget: formatInr(Math.max(500, Math.round(form.budget * 0.62))),
-        duration: "Trim one paid stop",
-        description: "Keeps the route social and local with street food, free views, and walking hops.",
-        tags: ["Budget", "Flexible"],
-      },
-      {
-        id: "luxury",
-        title: "Luxury version",
-        budget: formatInr(Math.round(form.budget * 1.8)),
-        duration: "Same pace",
-        description: "Upgrades dinner, adds reserved seating, and swaps one stop for a premium experience.",
-        tags: ["Luxury", "Romantic"],
-      },
-      {
-        id: "faster",
-        title: "Faster version",
-        budget: formatInr(Math.round(form.budget * 0.9)),
-        duration: "2 stops",
-        description: "Compresses the plan into the two highest-signal stops with the least commute.",
-        tags: ["Fast", "Low commute"],
-      },
-      {
-        id: "hidden",
-        title: "Hidden gems version",
-        budget: formatInr(form.budget),
-        duration: "Mystery route",
-        description: "Prioritizes lesser-known studios, rooftops, and quieter food counters.",
-        tags: ["Hidden Gems", "Surprise"],
-      },
-      {
-        id: "weather",
-        title: "Weather-safe version",
-        budget: formatInr(Math.round(form.budget * 1.05)),
-        duration: "Indoor-first",
-        description: "Moves outdoor stops earlier and keeps indoor backups within a short hop.",
-        tags: ["Rainy Day", "AQI-aware"],
-      },
-    ],
-    map_coordinates: normalizedStops.map((stop) => stop.coordinates),
-  };
+function SignalBadge({ signal }) {
+  if (!signal) return null;
+  return (
+    <small className={`source-badge ${signal.live ? "live" : "estimate"}`}>
+      {signal.live ? "Live" : "Estimate"} - {signal.source} - {signal.confidence}
+    </small>
+  );
 }
 
 function PlannerProvider({ children }) {
@@ -916,6 +482,28 @@ function RouteMap({ plan, preview = false }) {
         { title: "View", coordinates: { lat: 12.991, lng: 77.616 } },
       ]
     : plan.stops;
+  const realPoints = points.filter((point) => point.coordinates);
+  const lats = realPoints.map((point) => Number(point.coordinates.lat));
+  const lngs = realPoints.map((point) => Number(point.coordinates.lng));
+  const minLat = Math.min(...lats);
+  const maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs);
+  const maxLng = Math.max(...lngs);
+
+  const positionFor = (point, index) => {
+    if (!point.coordinates || !Number.isFinite(minLat) || minLat === maxLat || minLng === maxLng) {
+      return {
+        left: `${18 + index * (64 / Math.max(points.length - 1, 1))}%`,
+        top: `${preview ? 62 - index * 14 : 66 - (index % 3) * 17}%`,
+      };
+    }
+    const lngRatio = (Number(point.coordinates.lng) - minLng) / (maxLng - minLng || 1);
+    const latRatio = (Number(point.coordinates.lat) - minLat) / (maxLat - minLat || 1);
+    return {
+      left: `${14 + lngRatio * 72}%`,
+      top: `${74 - latRatio * 50}%`,
+    };
+  };
 
   return (
     <div className="smart-map">
@@ -924,10 +512,7 @@ function RouteMap({ plan, preview = false }) {
       {points.map((point, index) => (
         <div
           className={`map-stop stop-${index + 1}`}
-          style={{
-            left: `${18 + index * (64 / Math.max(points.length - 1, 1))}%`,
-            top: `${preview ? 62 - index * 14 : 66 - (index % 3) * 17}%`,
-          }}
+          style={positionFor(point, index)}
           key={`${point.title}-${index}`}
         >
           <span>{index + 1}</span>
@@ -940,7 +525,7 @@ function RouteMap({ plan, preview = false }) {
       </div>
       <div className="map-chip bottom">
         <MapPinned size={15} />
-        {preview ? "Optimized route order" : plan.route.estimated_commute_time}
+        {preview ? "Optimized route order" : `${plan.route.estimated_commute_time} - ${plan.route.optimized_order?.length || 0} real stops`}
       </div>
     </div>
   );
@@ -999,6 +584,14 @@ function PreviewPanel() {
 }
 
 function SummaryCard({ plan }) {
+  const metrics = [
+    ["Total duration", plan.summary.total_duration, Timer, null],
+    ["Budget", plan.summary.estimated_budget, IndianRupee, signalFor(plan, "estimated_budget")],
+    ["Distance", plan.summary.total_travel_distance, Route, signalFor(plan, "total_travel_distance")],
+    ["Weather", plan.summary.weather_snapshot, CloudSun, signalFor(plan, "weather_snapshot")],
+    ["Best leave", plan.summary.best_time_to_leave, Clock3, signalFor(plan, "best_time_to_leave")],
+  ];
+
   return (
     <Motion.section className="nearby-summary" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}>
       <div>
@@ -1015,31 +608,14 @@ function SummaryCard({ plan }) {
         </div>
       </div>
       <div className="summary-metrics">
-        <div>
-          <Timer size={18} />
-          <span>Total duration</span>
-          <strong>{plan.summary.total_duration}</strong>
-        </div>
-        <div>
-          <IndianRupee size={18} />
-          <span>Budget</span>
-          <strong>{plan.summary.estimated_budget}</strong>
-        </div>
-        <div>
-          <Route size={18} />
-          <span>Distance</span>
-          <strong>{plan.summary.total_travel_distance}</strong>
-        </div>
-        <div>
-          <CloudSun size={18} />
-          <span>Weather</span>
-          <strong>{plan.summary.weather_snapshot}</strong>
-        </div>
-        <div>
-          <Clock3 size={18} />
-          <span>Best leave</span>
-          <strong>{plan.summary.best_time_to_leave}</strong>
-        </div>
+        {metrics.map(([label, value, Icon, signal]) => (
+          <div key={label}>
+            {createElement(Icon, { size: 18 })}
+            <span>{label}</span>
+            <strong>{signalValue(value)}</strong>
+            <SignalBadge signal={signal} />
+          </div>
+        ))}
       </div>
     </Motion.section>
   );
@@ -1097,6 +673,26 @@ function StopTimeline({ plan }) {
                 <Sparkles size={17} />
                 <span>{stop.why_ai_picked_this}</span>
               </div>
+              <div className="source-row">
+                <SignalBadge signal={stop.signals?.coordinates} />
+                <SignalBadge signal={stop.signals?.opening_hours} />
+                <SignalBadge signal={stop.signals?.estimated_cost} />
+              </div>
+              {stop.score_breakdown && (
+                <div className="score-panel">
+                  <strong>Score {stop.score_breakdown.total}/100</strong>
+                  {[
+                    ["Mood", stop.score_breakdown.mood_match],
+                    ["Distance", stop.score_breakdown.distance_score],
+                    ["Budget", stop.score_breakdown.budget_fit],
+                    ["Rating", stop.score_breakdown.rating_score],
+                    ["Weather", stop.score_breakdown.weather_fit],
+                    ["Hours", stop.score_breakdown.opening_hours_fit],
+                  ].map(([label, value]) => (
+                    <span key={label}>{label}: {value}</span>
+                  ))}
+                </div>
+              )}
             </div>
           </Motion.article>
         ))}
@@ -1141,12 +737,12 @@ function BudgetBreakdown({ plan }) {
 
 function InsightsPanel({ plan }) {
   const signalCards = [
-    ["Weather", plan.summary.weather_snapshot, CloudSun],
-    ["Traffic", plan.timing.traffic_note, Gauge],
-    ["Opening hours", "Live opening-hour hooks ready", Clock3],
-    ["AQI", "Outdoor exposure kept short and green", Wind],
-    ["Nightlife", plan.timing.nightlife_window, Moon],
-    ["Rain fallback", plan.timing.rainy_day_cutover, Umbrella],
+    ["Weather", plan.summary.weather_snapshot, CloudSun, plan.summary.signals?.weather_snapshot],
+    ["Traffic", plan.timing.traffic_note, Gauge, plan.timing.signals?.traffic_note],
+    ["Opening hours", "Shown per stop from Maps when returned", Clock3, null],
+    ["AQI", "Estimate; no live AQI source configured", Wind, { live: false, source: "Deterministic estimate", confidence: "medium" }],
+    ["Nightlife", plan.timing.nightlife_window, Moon, null],
+    ["Rain fallback", plan.timing.rainy_day_cutover, Umbrella, plan.timing.signals?.rainy_day_cutover],
   ];
 
   return (
@@ -1160,11 +756,12 @@ function InsightsPanel({ plan }) {
       </div>
 
       <div className="signal-grid">
-        {signalCards.map(([label, value, Icon]) => (
+        {signalCards.map(([label, value, Icon, signal]) => (
           <div className="signal-card" key={label}>
             {createElement(Icon, { size: 18 })}
             <span>{label}</span>
             <strong>{value}</strong>
+            <SignalBadge signal={signal} />
           </div>
         ))}
       </div>
@@ -1181,7 +778,7 @@ function InsightsPanel({ plan }) {
   );
 }
 
-function AlternatePlans({ plan }) {
+function AlternatePlans({ plan, onSwitch }) {
   return (
     <section className="alternate-panel">
       <div className="output-heading">
@@ -1193,7 +790,7 @@ function AlternatePlans({ plan }) {
       </div>
       <div className="alternate-grid">
         {plan.alternates.map((alternate) => (
-          <article className="alternate-card" key={alternate.id}>
+          <button className="alternate-card" key={alternate.id} type="button" onClick={() => onSwitch(alternate)}>
             <div>
               <h3>{alternate.title}</h3>
               <strong>{alternate.budget}</strong>
@@ -1204,7 +801,7 @@ function AlternatePlans({ plan }) {
                 <span key={tag}>{tag}</span>
               ))}
             </div>
-          </article>
+          </button>
         ))}
       </div>
     </section>
@@ -1304,14 +901,23 @@ function JsonSchemaPanel({ plan }) {
   );
 }
 
-function OutputSection({ plan }) {
+function OutputSection({ plan, onAlternate }) {
   return (
     <div className="nearby-output">
       <SummaryCard plan={plan} />
+      {plan.diagnostics && (
+        <section className="diagnostics-panel">
+          <strong>{plan.diagnostics.source}</strong>
+          <span>Maps calls: {plan.diagnostics.maps_calls}</span>
+          <span>Groq calls: {plan.diagnostics.groq_calls}</span>
+          {plan.diagnostics.cache_hit && <span>Explanation cache hit</span>}
+          {plan.diagnostics.warnings?.map((warning) => <small key={warning}>{warning}</small>)}
+        </section>
+      )}
       <div className="output-layout">
         <div>
           <StopTimeline plan={plan} />
-          <AlternatePlans plan={plan} />
+          <AlternatePlans plan={plan} onSwitch={onAlternate} />
           <JsonSchemaPanel plan={plan} />
         </div>
         <aside>
@@ -1330,6 +936,7 @@ function NearbyPlannerInner() {
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [plan, setPlan] = useState(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!loading) return undefined;
@@ -1339,24 +946,31 @@ function NearbyPlannerInner() {
     return () => window.clearInterval(interval);
   }, [loading]);
 
-  const generatePlan = async () => {
+  const generatePlan = async (patch = {}) => {
+    const nextState = {
+      ...state,
+      ...patch,
+      moods: patch.moods || state.moods,
+      budget: patch.budget || state.budget,
+      duration: patch.duration || state.duration,
+      radius: patch.radius || state.radius,
+    };
     setLoading(true);
     setPlan(null);
+    setError("");
     setLoadingStep(0);
     const payload = {
-      location: state.location || state.detectedCity,
-      detected_city: state.detectedCity,
-      coordinates: state.coordinates,
-      duration: state.duration === "Custom" ? state.customDuration || "Custom" : state.duration,
-      moods: state.moods,
-      budget: state.budget,
-      transport: state.transport,
-      radius: state.radius,
-      group_type: state.groupType,
-      surprise_me: state.surpriseMe,
+      location: nextState.location || nextState.detectedCity,
+      detected_city: nextState.detectedCity,
+      coordinates: nextState.coordinates,
+      duration: nextState.duration === "Custom" ? nextState.customDuration || "Custom" : nextState.duration,
+      moods: nextState.moods,
+      budget: nextState.budget,
+      transport: nextState.transport,
+      radius: nextState.radius,
+      group_type: nextState.groupType,
+      surprise_me: nextState.surpriseMe,
     };
-
-    const localPlan = buildNearbyPlan(state);
 
     try {
       const res = await fetch(apiUrl("/nearby/generate"), {
@@ -1364,15 +978,18 @@ function NearbyPlannerInner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error("Nearby planner API failed");
+      if (!res.ok) {
+        const detail = await res.json().catch(() => ({}));
+        throw new Error(detail.detail || "Nearby planner API failed");
+      }
       const apiPlan = await res.json();
       window.setTimeout(() => {
         setPlan(apiPlan);
         setLoading(false);
       }, 1800);
-    } catch {
+    } catch (err) {
       window.setTimeout(() => {
-        setPlan(localPlan);
+        setError(err.message || "Nearby planner API failed. No local fake plan was shown.");
         setLoading(false);
       }, 1800);
     }
@@ -1387,7 +1004,15 @@ function NearbyPlannerInner() {
 
       <AnimatePresence>{loading && <LoadingExperience stepIndex={loadingStep} />}</AnimatePresence>
 
-      <AnimatePresence>{plan && !loading && <OutputSection plan={plan} />}</AnimatePresence>
+      {error && !loading && (
+        <section className="nearby-error">
+          <strong>Could not generate a verified nearby plan.</strong>
+          <span>{error}</span>
+          <small>Configure `GOOGLE_MAPS_API_KEY` or `SERPAPI_KEY` for real nearby place search. Groq is only used for short explanations.</small>
+        </section>
+      )}
+
+      <AnimatePresence>{plan && !loading && <OutputSection plan={plan} onAlternate={(alternate) => generatePlan(alternate.request_patch || {})} />}</AnimatePresence>
     </div>
   );
 }

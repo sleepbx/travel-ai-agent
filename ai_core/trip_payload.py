@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from typing import Any
 from urllib.parse import quote_plus
 
+from ai_core.route_optimizer import apply_distance_routes
 
 DEFAULT_TRAVEL_STYLE = "balanced_comfort"
 BUDGET_REDUCTION_FACTOR = 0.82
@@ -2161,6 +2162,7 @@ def complete_trip_plan(plan: dict[str, Any], state: dict[str, Any], source_paylo
         if day["daily_total"] and not day["daily_cost"].get("total"):
             day["daily_cost"]["total"] = format_inr(day["daily_total"])
 
+    apply_distance_routes(plan, destination, hotel_name)
     recalculate_cost_summary(
         plan,
         "Live prices when available; estimates marked.",

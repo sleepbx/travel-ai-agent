@@ -678,6 +678,81 @@
   line-height: 1.25;
 }
 
+.source-badge {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 8px;
+  padding: 4px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.source-badge.live {
+  background: rgba(16, 185, 129, 0.18);
+  color: #d1fae5;
+}
+
+.source-badge.estimate {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fff7ed;
+}
+
+.stop-card .source-badge,
+.signal-card .source-badge {
+  border-color: var(--border);
+  color: var(--text-light);
+}
+
+.stop-card .source-badge.live,
+.signal-card .source-badge.live {
+  background: rgba(16, 185, 129, 0.11);
+  color: #047857;
+}
+
+.stop-card .source-badge.estimate,
+.signal-card .source-badge.estimate {
+  background: rgba(245, 158, 11, 0.12);
+  color: #92400e;
+}
+
+.diagnostics-panel,
+.nearby-error {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  align-items: center;
+  margin-top: 14px;
+  padding: 13px 15px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: white;
+  color: var(--text-light);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.diagnostics-panel strong,
+.nearby-error strong {
+  color: var(--text-dark);
+}
+
+.diagnostics-panel small,
+.nearby-error small {
+  flex-basis: 100%;
+  color: var(--text-light);
+  font-weight: 700;
+}
+
+.nearby-error {
+  margin-top: 22px;
+  border-color: rgba(220, 38, 38, 0.24);
+  background: rgba(254, 242, 242, 0.9);
+}
+
 .output-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
@@ -839,6 +914,39 @@
   margin-top: 2px;
 }
 
+.source-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.score-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 12px;
+  padding: 11px;
+  border: 1px solid rgba(15, 118, 110, 0.14);
+  border-radius: var(--radius);
+  background: rgba(15, 118, 110, 0.05);
+}
+
+.score-panel strong {
+  flex-basis: 100%;
+  color: var(--primary-strong);
+  font-size: 13px;
+}
+
+.score-panel span {
+  padding: 5px 7px;
+  border-radius: 999px;
+  background: white;
+  color: var(--text-light);
+  font-size: 11px;
+  font-weight: 900;
+}
+
 .budget-bars {
   display: grid;
   gap: 11px;
@@ -945,6 +1053,9 @@
 }
 
 .alternate-card {
+  appearance: none;
+  text-align: left;
+  cursor: pointer;
   min-width: 0;
   padding: 15px;
   border: 1px solid var(--border);
@@ -952,6 +1063,11 @@
   background:
     linear-gradient(135deg, rgba(15, 118, 110, 0.08), rgba(245, 158, 11, 0.08)),
     white;
+}
+
+.alternate-card:hover {
+  border-color: rgba(15, 118, 110, 0.36);
+  transform: translateY(-1px);
 }
 
 .alternate-card div:first-child {

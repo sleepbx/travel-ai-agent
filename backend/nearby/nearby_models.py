@@ -1,3 +1,5 @@
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -19,6 +21,34 @@ class NearbyPlanRequest(BaseModel):
     surprise_me: bool = True
 
 
+class NearbySignal(BaseModel):
+    value: str
+    source: str = "Deterministic estimate"
+    confidence: str = "medium"
+    live: bool = False
+    updated_at: str = ""
+
+
+class NearbyScoreBreakdown(BaseModel):
+    mood_match: float = 0
+    distance_score: float = 0
+    budget_fit: float = 0
+    rating_score: float = 0
+    weather_fit: float = 0
+    opening_hours_fit: float = 0
+    total: float = 0
+
+
+class NearbyDiagnostics(BaseModel):
+    status: str = "ok"
+    source: str = "deterministic"
+    validation_errors: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    maps_calls: int = 0
+    groq_calls: int = 0
+    cache_hit: bool = False
+
+
 class NearbySummary(BaseModel):
     title: str
     location: str
@@ -29,6 +59,7 @@ class NearbySummary(BaseModel):
     best_time_to_leave: str
     vibe_tags: list[str]
     magic_touch: str
+    signals: dict[str, NearbySignal] = Field(default_factory=dict)
 
 
 class NearbyStop(BaseModel):
@@ -48,6 +79,12 @@ class NearbyStop(BaseModel):
     mood_tags: list[str]
     coordinates: Coordinates
     backup_plan: str
+    address: str = ""
+    rating: float | None = None
+    category: str = ""
+    distance_from_start_km: float = 0
+    score_breakdown: NearbyScoreBreakdown = Field(default_factory=NearbyScoreBreakdown)
+    signals: dict[str, NearbySignal] = Field(default_factory=dict)
 
 
 class NearbyTiming(BaseModel):
@@ -57,6 +94,7 @@ class NearbyTiming(BaseModel):
     nightlife_window: str
     traffic_note: str
     rainy_day_cutover: str
+    signals: dict[str, NearbySignal] = Field(default_factory=dict)
 
 
 class NearbyCosts(BaseModel):
@@ -66,6 +104,7 @@ class NearbyCosts(BaseModel):
     shopping: str
     buffer: str
     total: str
+    signals: dict[str, NearbySignal] = Field(default_factory=dict)
 
 
 class NearbyRoute(BaseModel):
@@ -76,6 +115,8 @@ class NearbyRoute(BaseModel):
     transport_aware_routing: str
     traffic_awareness: str
     map_coordinates: list[Coordinates]
+    leg_distances: list[NearbySignal] = Field(default_factory=list)
+    leg_durations: list[NearbySignal] = Field(default_factory=list)
 
 
 class NearbyAlternate(BaseModel):
@@ -85,6 +126,7 @@ class NearbyAlternate(BaseModel):
     duration: str
     description: str
     tags: list[str]
+    request_patch: dict[str, Any] = Field(default_factory=dict)
 
 
 class NearbyPlanResponse(BaseModel):
@@ -96,3 +138,4 @@ class NearbyPlanResponse(BaseModel):
     insights: list[str]
     alternates: list[NearbyAlternate]
     map_coordinates: list[Coordinates]
+    diagnostics: NearbyDiagnostics = Field(default_factory=NearbyDiagnostics)

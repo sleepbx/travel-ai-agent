@@ -492,7 +492,7 @@ function LegacySection({ section }) {
   );
 }
 
-function DayCard({ day, index, destination, selected, onSelect }) {
+function DayCard({ day, destination, selected, onSelect }) {
   return (
     <article className={`premium-day ${selected ? "selected" : "compact"}`} onClick={onSelect}>
       <div className="day-content">
@@ -834,7 +834,6 @@ export default function TripDetails() {
             {(plan.days.length ? plan.days : buildLegacyPlan(trip).days).map((day, index) => (
               <DayCard
                 day={day}
-                index={index}
                 destination={plan.destination}
                 selected={selectedDay === index}
                 onSelect={() => setSelectedDay(index)}
