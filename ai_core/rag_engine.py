@@ -210,23 +210,28 @@ class RAGEngine:
         return chunks
 
     def _expand_query(self, query: str) -> str:
-        travel_terms = [
-            "itinerary",
-            "hotel",
-            "flight",
-            "fare",
-            "budget",
-            "INR",
-            "restaurants",
-            "attractions",
-            "transport",
-            "safety",
-            "weather",
-            "neighborhood",
-            "local logistics",
-        ]
-        compact_query = re.sub(r"\s+", " ", query).strip()
-        return f"{compact_query} {' '.join(travel_terms)}"
+        compact = re.sub(r"\s+", " ", query).strip()
+        q_lower = compact.lower()
+
+        additions: list[str] = []
+
+        # Anchor to travel domain if not already obvious
+        if not any(w in q_lower for w in ("travel", "guide", "visit", "tour", "trip")):
+            additions.append("india travel guide")
+
+        # Add budget context only when not already present
+        if not any(w in q_lower for w in ("budget", "cost", "inr", "price", "₹", "fare")):
+            additions.append("budget INR")
+
+        # Add transport context when the query is about places/attractions
+        if not any(w in q_lower for w in ("transport", "metro", "taxi", "cab", "bus", "train")):
+            additions.append("local transport")
+
+        # Add timing/crowd context for attraction queries
+        if any(w in q_lower for w in ("fort", "temple", "palace", "museum", "monument", "beach")):
+            additions.append("morning timing crowd")
+
+        return f"{compact} {' '.join(additions)}".strip()
 
     def _mmr_select(self, candidates: List[RAGResult], top_k: int) -> List[RAGResult]:
         selected: List[RAGResult] = []
@@ -279,18 +284,27 @@ class RAGEngine:
 
         return [doc for doc in normalized if str(doc.get("content", "")).strip()]
 
+    def _embed_with_title(self, chunks: List[str], titles: List[str]) -> np.ndarray:
+        """Embed chunks with their document title prefix for better topical alignment."""
+        prefixed = [f"{t}: {c}" if t else c for t, c in zip(titles, chunks)]
+        return self._embed(prefixed)
+
     def _index_docs(self, normalized: List[Dict[str, Any]], source_hash: str | None = None):
-        chunks = []
-        metadata = []
+        chunks: List[str] = []
+        titles: List[str] = []
+        metadata: List[Dict[str, Any]] = []
+
         for doc in normalized:
+            title = doc.get("title", "Document")
             doc_chunks = self._chunk_text(doc["content"])
             for chunk_index, chunk in enumerate(doc_chunks):
                 chunks.append(chunk)
+                titles.append(title)
                 metadata.append(
                     {
                         "text": chunk,
                         "metadata": {
-                            "title": doc.get("title", "Document"),
+                            "title": title,
                             "source": doc.get("source", "dataset"),
                             "city": doc.get("city", ""),
                             "state": doc.get("state", ""),
@@ -303,7 +317,7 @@ class RAGEngine:
         self.metadata = metadata
 
         if chunks:
-            self.index.add(self._embed(chunks))
+            self.index.add(self._embed_with_title(chunks, titles))
 
         self._save(source_hash=source_hash)
 
@@ -335,16 +349,20 @@ class RAGEngine:
         if not normalized:
             return
 
-        chunks = []
-        metadata = []
+        chunks: List[str] = []
+        titles: List[str] = []
+        metadata: List[Dict[str, Any]] = []
+
         for doc in normalized:
+            title = doc.get("title", "Document")
             for chunk_index, chunk in enumerate(self._chunk_text(doc["content"])):
                 chunks.append(chunk)
+                titles.append(title)
                 metadata.append(
                     {
                         "text": chunk,
                         "metadata": {
-                            "title": doc.get("title", "Document"),
+                            "title": title,
                             "source": doc.get("source", "dataset"),
                             "city": doc.get("city", ""),
                             "state": doc.get("state", ""),
@@ -356,7 +374,7 @@ class RAGEngine:
         if not chunks:
             return
 
-        self.index.add(self._embed(chunks))
+        self.index.add(self._embed_with_title(chunks, titles))
         self.metadata.extend(metadata)
         self._save()
 
@@ -438,8 +456,13 @@ class RAGEngine:
         scores, indices = self.index.search(qvec, search_k)
 
         query_terms = _term_set(expanded_query)
+
+        # Extract destination city tokens from the query for explicit city-match boost.
+        # Tokens of 4+ chars that look like city names get a bonus when found in the chunk.
+        dest_tokens = {t for t in query_terms if len(t) >= 4}
+
         candidates: List[RAGResult] = []
-        seen_titles = set()
+        seen_titles: set[str] = set()
 
         for score, idx in zip(scores[0], indices[0]):
             if idx < 0 or idx >= len(self.metadata):
@@ -455,18 +478,29 @@ class RAGEngine:
 
             text = doc["text"]
             text_terms = _term_set(text)
+
+            # Lexical overlap bonus
             lexical_overlap = len(query_terms & text_terms)
-            lexical_bonus = min(lexical_overlap * 0.014, 0.18)
-            title_key = meta.get("title", "")
-            diversity_penalty = 0.03 if title_key in seen_titles else 0
+            lexical_bonus = min(lexical_overlap * 0.012, 0.16)
+
+            # City/destination match bonus: chunk explicitly mentions destination tokens
+            city_meta = f"{meta.get('city', '')} {meta.get('title', '')}".lower()
+            city_match = any(t in city_meta for t in dest_tokens)
+            city_bonus = 0.06 if city_match else 0.0
+
+            # Recency/freshness bonus for live online memory
             source = str(meta.get("source", "")).lower()
-            source_bonus = 0.04 if "live" in source or "online" in source else 0
+            source_bonus = 0.04 if "live" in source or "online" in source else 0.0
+
+            # Soft diversity penalty for repeat titles (not a hard dedup)
+            title_key = meta.get("title", "")
+            diversity_penalty = 0.025 if title_key in seen_titles else 0.0
             seen_titles.add(title_key)
 
             candidates.append(
                 RAGResult(
                     text=text,
-                    score=float(score) + lexical_bonus + source_bonus - diversity_penalty,
+                    score=float(score) + lexical_bonus + city_bonus + source_bonus - diversity_penalty,
                     metadata=meta,
                 )
             )

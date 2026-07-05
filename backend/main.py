@@ -54,6 +54,17 @@ app.include_router(trip_router)
 app.include_router(trends_router)
 app.include_router(nearby_router)
 
+@app.on_event("startup")
+async def startup_warmup():
+    """Pre-load the RAG engine and embedding model on startup.
+    Without this, the first trip request would trigger a cold model load
+    and FAISS index build, potentially timing out on free-tier hosts."""
+    import asyncio
+    from ai_core.agent_core import get_rag_engine
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, get_rag_engine)
+
+
 @app.get("/health")
 def health_check():
     return {"status": "ok", "service": os.getenv("APP_NAME", "TravelAI Backend")}

@@ -309,6 +309,14 @@ def _compress_provider_payload(state: TripGraphState) -> dict[str, Any]:
     return payload
 
 
+_RAG_PASS_TERMS = frozenset({
+    "metro", "crowd", "traffic", "timing", "walk", "market", "local", "early",
+    "morning", "evening", "budget", "transport", "food", "weather", "season",
+    "monsoon", "tip", "best", "avoid", "visit", "tourist", "safe", "cost",
+    "inr", "fare", "route", "hours", "open", "close", "entry", "free",
+})
+
+
 def _compress_rag_results(results: list[Any], provider_context: dict[str, Any]) -> list[str]:
     place_names = {
         str(item.get("name") or item.get("hotel") or "").lower()
@@ -318,25 +326,36 @@ def _compress_rag_results(results: list[Any], provider_context: dict[str, Any]) 
     }
     insights: list[str] = []
     seen: set[str] = set()
+
     for result in results[:10]:
         text = getattr(result, "text", result.get("text", "") if isinstance(result, dict) else "")
         sentences = re.split(r"(?<=[.!?])\s+|[\n;]+", str(text))
         for sentence in sentences:
-            cleaned = re.sub(r"\s+", " ", sentence).strip(" -•")
-            if len(cleaned) < 12:
+            cleaned = re.sub(r"\s+", " ", sentence).strip(" -•*")
+            if len(cleaned) < 20:
                 continue
             lower = cleaned.lower()
+
+            # Pass sentences mentioning known provider places, or containing useful travel terms
             if place_names and not any(name and name in lower for name in place_names):
-                if not any(term in lower for term in ("metro", "crowd", "traffic", "timing", "walk", "market", "local", "early")):
+                if not any(term in lower for term in _RAG_PASS_TERMS):
                     continue
-            compact = _short_words(cleaned, 8)
-            key = compact.lower()
+
+            # Truncate at word boundary to ~140 chars to stay within token budget
+            if len(cleaned) > 140:
+                truncated = cleaned[:140].rsplit(" ", 1)[0]
+                cleaned = truncated if len(truncated) > 60 else cleaned[:140]
+
+            # Deduplicate by first 45 chars (catches near-duplicate sentences)
+            key = cleaned[:45].lower()
             if key in seen:
                 continue
-            insights.append(compact)
+
+            insights.append(cleaned)
             seen.add(key)
-            if len(insights) >= 5:
+            if len(insights) >= 7:
                 return insights
+
     return insights
 
 
@@ -487,25 +506,29 @@ class TravelAI:
             return {}
 
         dest = state["dest"]
+        dest_mode = state.get("destination_mode") or _destination_mode(dest)
+        interests = state.get("interests", "")
         provider_context = state.get("provider_context") or _compress_provider_payload(state)
-        names = []
+
+        names: list[str] = []
         for key in ("attractions", "restaurants", "hotels"):
             names.extend(
-                item.get("name") or item.get("hotel")
+                str(item.get("name") or item.get("hotel") or "")
                 for item in provider_context.get(key, [])
-                if isinstance(item, dict)
+                if isinstance(item, dict) and (item.get("name") or item.get("hotel"))
             )
         cluster_terms = " ".join(provider_context.get("clusters", {}).keys()) if isinstance(provider_context.get("clusters"), dict) else ""
+
+        # Build a rich query that surfaces neighborhood, timing, food, and transport facts
         query = (
-            f"{dest} {' '.join(str(name) for name in names[:12] if name)} "
-            f"{cluster_terms} timing crowd metro local transport pacing hidden gems"
+            f"{dest} travel guide {' '.join(names[:10])} "
+            f"{cluster_terms} {interests} "
+            f"timing crowd transport budget food local tips"
         )
-        rag_results = self.rag.retrieve(query, top_k=5, state=None)
+        rag_results = self.rag.retrieve(query, top_k=6, state=None)
         rag_context = _compress_rag_results(rag_results, provider_context)
 
-        return {
-            "rag_context": rag_context,
-        }
+        return {"rag_context": rag_context}
 
     async def _supplier_node_async(self, state: TripGraphState) -> TripGraphState:
         if state.get("error"):

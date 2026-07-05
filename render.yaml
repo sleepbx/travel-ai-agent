@@ -1,0 +1,67 @@
+services:
+  - type: web
+    name: travelai-backend
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      # ── Required: fill these in Render dashboard ──────────────────────────
+      - key: GROQ_API_KEY
+        sync: false                   # set manually in dashboard
+      - key: SECRET_KEY
+        sync: false                   # set manually in dashboard
+      - key: DATABASE_URL
+        sync: false                   # paste Supabase PostgreSQL URL here
+
+      # ── App ───────────────────────────────────────────────────────────────
+      - key: APP_NAME
+        value: TravelAI Backend
+      - key: APP_ENV
+        value: production
+
+      # ── CORS: add your Vercel frontend URL after deploying ────────────────
+      - key: CORS_ORIGINS
+        value: "*"                    # change to https://your-app.vercel.app after frontend deploy
+
+      # ── LLM ───────────────────────────────────────────────────────────────
+      - key: GROQ_MODEL
+        value: llama-3.1-8b-instant
+      - key: PLANNER_MAX_TOKENS
+        value: "4500"
+
+      # ── RAG: allow model download on first startup ─────────────────────
+      - key: RAG_EMBEDDING_MODEL
+        value: all-MiniLM-L6-v2
+      - key: RAG_LOCAL_ONLY
+        value: "false"                # must be false on Render (downloads model)
+      - key: RAG_CHUNK_SIZE
+        value: "850"
+      - key: RAG_CHUNK_OVERLAP
+        value: "140"
+      - key: RAG_TOP_K
+        value: "5"
+      - key: RAG_SEARCH_MULTIPLIER
+        value: "8"
+      - key: RAG_MMR_LAMBDA
+        value: "0.72"
+      - key: RAG_MEMORY_LIMIT
+        value: "350"
+
+      # ── Cache TTLs ─────────────────────────────────────────────────────
+      - key: WEB_SEARCH_CACHE_TTL
+        value: "21600"
+      - key: WEATHER_CACHE_TTL
+        value: "3600"
+      - key: TRANSPORT_CACHE_TTL
+        value: "21600"
+
+      # ── Optional: add if you have these keys ──────────────────────────
+      - key: SERPAPI_KEY
+        sync: false
+      - key: SERPER_API_KEY
+        sync: false
+      - key: GOOGLE_MAPS_API_KEY
+        sync: false
+      - key: OPENWEATHER_API_KEY
+        sync: false
