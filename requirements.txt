@@ -2,11 +2,13 @@
 # Web Backend
 # -------------------------------
 fastapi
-uvicorn
+uvicorn[standard]
 sqlalchemy
 pydantic
+email-validator
+python-multipart
 passlib[bcrypt]
-python-jose
+python-jose[cryptography]
 psycopg2-binary
 
 # -------------------------------
