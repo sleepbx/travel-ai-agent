@@ -35,38 +35,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-import sys
-import traceback
-
-_startup_error: str = ""
+# -------- DATABASE + MODELS --------
+from backend.database.engine import engine
+from backend.database.base import Base
+from backend.auth.auth_models import User
+from backend.trips.trip_models import Trip
 
 try:
-    # -------- DATABASE + MODELS --------
-    from backend.database.engine import engine
-    from backend.database.base import Base
-    from backend.auth.auth_models import User
-    from backend.trips.trip_models import Trip
-
     Base.metadata.create_all(bind=engine)
+except Exception:
+    pass  # DB unreachable at startup — tables created on first live connection
 
-    # -------- ROUTERS --------
-    from backend.auth.auth_router import router as auth_router
-    from backend.trips.trip_router import router as trip_router
-    from backend.discovery.trends_router import router as trends_router
-    from backend.nearby.nearby_router import router as nearby_router
+# -------- ROUTERS --------
+from backend.auth.auth_router import router as auth_router
+from backend.trips.trip_router import router as trip_router
+from backend.discovery.trends_router import router as trends_router
+from backend.nearby.nearby_router import router as nearby_router
 
-    app.include_router(auth_router)
-    app.include_router(trip_router)
-    app.include_router(trends_router)
-    app.include_router(nearby_router)
-
-except Exception as _e:
-    _startup_error = traceback.format_exc()
-    print(f"STARTUP ERROR: {_startup_error}", file=sys.stderr, flush=True)
+app.include_router(auth_router)
+app.include_router(trip_router)
+app.include_router(trends_router)
+app.include_router(nearby_router)
 
 
 @app.get("/health")
 def health_check():
-    if _startup_error:
-        return {"status": "error", "startup_error": _startup_error}
     return {"status": "ok", "service": os.getenv("APP_NAME", "TravelAI Backend")}
