@@ -38,6 +38,8 @@ app.add_middleware(
 import sys
 import traceback
 
+_startup_error: str = ""
+
 try:
     # -------- DATABASE + MODELS --------
     from backend.database.engine import engine
@@ -58,13 +60,13 @@ try:
     app.include_router(trends_router)
     app.include_router(nearby_router)
 
-except Exception as _startup_err:
-    print(f"STARTUP ERROR: {type(_startup_err).__name__}: _startup_err", file=sys.stderr, flush=True)
-    traceback.print_exc(file=sys.stderr)
-    sys.stderr.flush()
-    raise
+except Exception as _e:
+    _startup_error = traceback.format_exc()
+    print(f"STARTUP ERROR: {_startup_error}", file=sys.stderr, flush=True)
 
 
 @app.get("/health")
 def health_check():
+    if _startup_error:
+        return {"status": "error", "startup_error": _startup_error}
     return {"status": "ok", "service": os.getenv("APP_NAME", "TravelAI Backend")}
