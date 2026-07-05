@@ -689,6 +689,7 @@ Src={_json_dumps(source_payload)}
 Return compact JSON:
 {{"schema_version":"travelai_v11","pipeline":{{"providers_completed":true,"rag_completed":true,"compression_completed":true,"budget_optimized":true}},"destination_mode":"{source_payload['destination_mode']}","source_confidence":"medium","summary":{{"text":"","days":{state['total_days']},"budget":{state.get('max_budget') or 0}}},"selected_transport":{{}},"selected_hotel":{{}},"days":[],"cost_summary":{{}},"budget_guardrails":{{}},"ai_insights":[]}}
 Rules:
+- summary.text: 1-2 sentence trip overview mentioning destination highlights and travel style.
 - exact {state['total_days']} days.
 - each day has morning, afternoon, evening activity; breakfast,lunch,dinner; local transport; daily total.
 - day keys: day,theme,daily_total,activities,food,transport,stay_cost.
