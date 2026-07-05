@@ -1,7 +1,9 @@
+import os
+import traceback
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-import os
 
 load_dotenv()
 
@@ -14,50 +16,66 @@ cors_origins = [
     origin.strip()
     for origin in os.getenv(
         "CORS_ORIGINS",
-        "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:5175,http://127.0.0.1:5175",
+        "http://localhost:5173,http://127.0.0.1:5173",
     ).split(",")
     if origin.strip()
 ]
 allow_all_origins = "*" in cors_origins
-app_env = os.getenv("APP_ENV", os.getenv("ENVIRONMENT", "development")).lower()
-local_dev_origin_regex = (
-    r"https?://(localhost|127\.0\.0\.1):[0-9]+"
-    if app_env not in {"prod", "production"} and not allow_all_origins
-    else None
-)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"] if allow_all_origins else cors_origins,
-    allow_origin_regex=local_dev_origin_regex,
     allow_credentials=not allow_all_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# -------- DATABASE + MODELS --------
-from backend.database.engine import engine
-from backend.database.base import Base
-from backend.auth.auth_models import User
-from backend.trips.trip_models import Trip
+_startup_errors: list[str] = []
 
-try:
-    Base.metadata.create_all(bind=engine)
-except Exception:
-    pass  # DB unreachable at startup — tables created on first live connection
 
-# -------- ROUTERS --------
-from backend.auth.auth_router import router as auth_router
-from backend.trips.trip_router import router as trip_router
-from backend.discovery.trends_router import router as trends_router
-from backend.nearby.nearby_router import router as nearby_router
+def _try_import(label: str, fn):
+    try:
+        return fn()
+    except Exception:
+        _startup_errors.append(f"[{label}] {traceback.format_exc()}")
+        return None
 
-app.include_router(auth_router)
-app.include_router(trip_router)
-app.include_router(trends_router)
-app.include_router(nearby_router)
+
+# DB setup
+def _setup_db():
+    from backend.database.engine import engine
+    from backend.database.base import Base
+    import backend.auth.auth_models  # noqa: F401
+    import backend.trips.trip_models  # noqa: F401
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception:
+        pass
+
+_try_import("db_setup", _setup_db)
+
+# Routers
+auth_router = _try_import("auth_router", lambda: __import__("backend.auth.auth_router", fromlist=["router"]).router)
+trip_router = _try_import("trip_router", lambda: __import__("backend.trips.trip_router", fromlist=["router"]).router)
+trends_router = _try_import("trends_router", lambda: __import__("backend.discovery.trends_router", fromlist=["router"]).router)
+nearby_router = _try_import("nearby_router", lambda: __import__("backend.nearby.nearby_router", fromlist=["router"]).router)
+
+if auth_router:
+    app.include_router(auth_router)
+if trip_router:
+    app.include_router(trip_router)
+if trends_router:
+    app.include_router(trends_router)
+if nearby_router:
+    app.include_router(nearby_router)
 
 
 @app.get("/health")
 def health_check():
+    if _startup_errors:
+        return {
+            "status": "degraded",
+            "service": os.getenv("APP_NAME", "TravelAI Backend"),
+            "errors": _startup_errors,
+        }
     return {"status": "ok", "service": os.getenv("APP_NAME", "TravelAI Backend")}
