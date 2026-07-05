@@ -25,7 +25,6 @@ groq
 # RAG & Embeddings
 # -------------------------------
 langgraph
-sentence-transformers
 faiss-cpu
 numpy
 
