@@ -35,24 +35,34 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# -------- DATABASE + MODELS --------
-from backend.database.engine import engine
-from backend.database.base import Base
-from backend.auth.auth_models import User
-from backend.trips.trip_models import Trip
+import sys
+import traceback
 
-Base.metadata.create_all(bind=engine)
+try:
+    # -------- DATABASE + MODELS --------
+    from backend.database.engine import engine
+    from backend.database.base import Base
+    from backend.auth.auth_models import User
+    from backend.trips.trip_models import Trip
 
-# -------- ROUTERS --------
-from backend.auth.auth_router import router as auth_router
-from backend.trips.trip_router import router as trip_router
-from backend.discovery.trends_router import router as trends_router
-from backend.nearby.nearby_router import router as nearby_router
+    Base.metadata.create_all(bind=engine)
 
-app.include_router(auth_router)
-app.include_router(trip_router)
-app.include_router(trends_router)
-app.include_router(nearby_router)
+    # -------- ROUTERS --------
+    from backend.auth.auth_router import router as auth_router
+    from backend.trips.trip_router import router as trip_router
+    from backend.discovery.trends_router import router as trends_router
+    from backend.nearby.nearby_router import router as nearby_router
+
+    app.include_router(auth_router)
+    app.include_router(trip_router)
+    app.include_router(trends_router)
+    app.include_router(nearby_router)
+
+except Exception as _startup_err:
+    print(f"STARTUP ERROR: {type(_startup_err).__name__}: _startup_err", file=sys.stderr, flush=True)
+    traceback.print_exc(file=sys.stderr)
+    sys.stderr.flush()
+    raise
 
 
 @app.get("/health")
