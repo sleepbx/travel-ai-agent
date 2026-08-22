@@ -11,6 +11,7 @@ from groq import Groq
 
 from ai_core.rag_documents import india_travel_docs
 from ai_core.rag_engine import RAGEngine
+from ai_core.web_search import travel_web_search_json
 from ai_core.trip_payload import (
     apply_budget_preferences,
     build_budget_profile,
@@ -525,10 +526,21 @@ class TravelAI:
             f"{cluster_terms} {interests} "
             f"timing crowd transport budget food local tips"
         )
-        rag_results = self.rag.retrieve(query, top_k=6, state=None)
-        rag_context = _compress_rag_results(rag_results, provider_context)
 
-        return {"rag_context": rag_context}
+        live_context = travel_web_search_json(query, max_results=RAG_TOP_K)
+        if live_context.get("status") == "ok" and live_context.get("results"):
+            provider = str(live_context.get("provider") or "online").lower()
+            self.rag.remember_online_context(
+                query=query,
+                context=live_context["results"],
+                city=dest,
+                source=f"{provider}-live-search",
+            )
+
+        rag_results = self.rag.retrieve(query, top_k=RAG_TOP_K, state=None)
+        rag_context = _compress_rag_results(rag_results, provider_context)[:RAG_TOP_K]
+
+        return {"rag_context": rag_context, "live_context": live_context}
 
     async def _supplier_node_async(self, state: TripGraphState) -> TripGraphState:
         if state.get("error"):
