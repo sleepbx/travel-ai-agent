@@ -12,6 +12,7 @@ from backend.trips.trip_service import (
     save_trip_version,
     get_trip_versions,
     get_trip_version_by_number,
+    summarize_itinerary_changes,
 )
 
 from backend.ai_adapter.planner import (
@@ -94,9 +95,15 @@ def refine_trip_api(
     if not trip:
         raise HTTPException(status_code=404, detail="Trip not found")
 
+    previous_itinerary = trip.itinerary
     updated_itinerary = refine_trip_itinerary(
         existing_itinerary=trip.itinerary,
         user_request=data.instruction,
+    )
+    key_changes = summarize_itinerary_changes(
+        before_itinerary=previous_itinerary,
+        after_itinerary=updated_itinerary,
+        instruction=data.instruction,
     )
 
     trip.itinerary = updated_itinerary
@@ -104,7 +111,7 @@ def refine_trip_api(
     db.refresh(trip)
 
     # Save refinement as a new version.
-    save_trip_version(
+    version = save_trip_version(
         db=db,
         trip_id=trip.id,
         itinerary=updated_itinerary,
@@ -115,6 +122,8 @@ def refine_trip_api(
         "trip_id": trip.id,
         "message": "Trip refined successfully",
         "updated_itinerary": updated_itinerary,
+        "version": version.version_number,
+        "key_changes": key_changes,
     }
 
 
@@ -142,13 +151,20 @@ def rollback_trip_api(
     if not version:
         raise HTTPException(status_code=404, detail="Version not found")
 
+    previous_itinerary = trip.itinerary
+    key_changes = summarize_itinerary_changes(
+        before_itinerary=previous_itinerary,
+        after_itinerary=version.itinerary,
+        instruction=f"Rollback to version {data.version_number}",
+    )
+
     # Roll back itinerary.
     trip.itinerary = version.itinerary
     db.commit()
     db.refresh(trip)
 
     # Save rollback as a new version.
-    save_trip_version(
+    rollback_version = save_trip_version(
         db=db,
         trip_id=trip.id,
         itinerary=version.itinerary,
@@ -159,6 +175,9 @@ def rollback_trip_api(
         "trip_id": trip.id,
         "message": f"Rolled back to version {data.version_number}",
         "current_itinerary": trip.itinerary,
+        "rolled_back_to_version": data.version_number,
+        "version": rollback_version.version_number,
+        "key_changes": key_changes,
     }
 
 
@@ -191,6 +210,7 @@ def trip_versions(
             "version": v.version_number,
             "instruction": v.instruction,
             "created_at": v.created_at,
+            "itinerary": v.itinerary,
         }
         for v in versions
     ]

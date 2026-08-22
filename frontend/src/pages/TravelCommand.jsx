@@ -312,7 +312,11 @@ export default function TravelCommand() {
         )
       );
       setCommand("");
-      setMessage("Trip updated with the latest budget-aware refinement.");
+      setMessage(
+        data.key_changes?.length
+          ? `Trip updated: ${data.key_changes.slice(0, 2).join(" ")}`
+          : "Trip updated with the latest budget-aware refinement."
+      );
     } catch (err) {
       const text = err instanceof TypeError ? backendUnavailableMessage() : err.message;
       setMessage(text);

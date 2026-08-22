@@ -10,12 +10,14 @@ import {
   Clock3,
   Compass,
   ExternalLink,
+  History,
   IndianRupee,
   Info,
   Landmark,
   MapPinned,
   PlaneTakeoff,
   RefreshCw,
+  RotateCcw,
   Route,
   Send,
   ShieldCheck,
@@ -582,6 +584,9 @@ export default function TripDetails() {
   const [loading, setLoading] = useState(true);
   const [instruction, setInstruction] = useState("");
   const [refining, setRefining] = useState(false);
+  const [versions, setVersions] = useState([]);
+  const [rollingBack, setRollingBack] = useState(null);
+  const [changeNotice, setChangeNotice] = useState([]);
   const [selectedDay, setSelectedDay] = useState(0);
 
   useEffect(() => {
@@ -610,6 +615,15 @@ export default function TripDetails() {
         }
 
         setTrip(found);
+
+        const versionsRes = await fetch(apiUrl(`/trips/${id}/versions`), {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (versionsRes.ok) {
+          setVersions(await versionsRes.json());
+        }
       } catch (err) {
         console.error(err);
       } finally {
@@ -692,7 +706,18 @@ export default function TripDetails() {
       setTrip((prev) => ({
         ...prev,
         itinerary: data.updated_itinerary,
+        updated_at: new Date().toISOString(),
       }));
+      setChangeNotice(data.key_changes || []);
+      setVersions((current) => [
+        ...current,
+        {
+          version: data.version,
+          instruction,
+          created_at: new Date().toISOString(),
+          itinerary: data.updated_itinerary,
+        },
+      ]);
 
       setInstruction("");
       setSelectedDay(0);
@@ -706,6 +731,49 @@ export default function TripDetails() {
 
   const addRefinePreset = (preset) => {
     setInstruction((current) => (current.trim() ? `${current.trim()} ${preset}` : preset));
+  };
+
+  const handleRollback = async (versionNumber) => {
+    if (!versionNumber || rollingBack) return;
+
+    setRollingBack(versionNumber);
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(apiUrl(`/trips/${id}/rollback`), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ version_number: versionNumber }),
+      });
+
+      if (!res.ok) throw new Error("Rollback failed");
+
+      const data = await res.json();
+      setTrip((prev) => ({
+        ...prev,
+        itinerary: data.current_itinerary,
+        updated_at: new Date().toISOString(),
+      }));
+      setChangeNotice(data.key_changes || [`Rolled back to version ${versionNumber}`]);
+      setVersions((current) => [
+        ...current,
+        {
+          version: data.version,
+          instruction: `Rollback to version ${versionNumber}`,
+          created_at: new Date().toISOString(),
+          itinerary: data.current_itinerary,
+        },
+      ]);
+      setSelectedDay(0);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to roll back trip");
+    } finally {
+      setRollingBack(null);
+    }
   };
 
   if (loading) {
@@ -885,6 +953,51 @@ export default function TripDetails() {
               </>
             )}
           </button>
+
+          {changeNotice.length > 0 && (
+            <div className="version-change-box">
+              <div>
+                <Sparkles size={18} />
+                <span>Key changes</span>
+              </div>
+              {changeNotice.map((change, index) => (
+                <p key={`change-${index}`}>{change}</p>
+              ))}
+            </div>
+          )}
+
+          <div className="version-history-box">
+            <div className="version-history-title">
+              <div>
+                <History size={18} />
+                <span>Trip versions</span>
+              </div>
+              <strong>{versions.length}</strong>
+            </div>
+            <div className="version-list">
+              {versions.length ? versions.slice().reverse().map((version) => {
+                const isCurrent = version.itinerary === trip.itinerary;
+                return (
+                  <div className="version-row" key={`version-${version.version}`}>
+                    <div>
+                      <strong>Version {version.version}</strong>
+                      <span>{valueText(version.instruction, "Saved plan")}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRollback(version.version)}
+                      disabled={isCurrent || rollingBack === version.version}
+                    >
+                      <RotateCcw size={15} />
+                      {isCurrent ? "Current" : rollingBack === version.version ? "Restoring" : "Rollback"}
+                    </button>
+                  </div>
+                );
+              }) : (
+                <p>No saved versions yet.</p>
+              )}
+            </div>
+          </div>
 
           <div className="cost-summary-box">
             <div>
