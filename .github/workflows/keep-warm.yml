@@ -1,0 +1,34 @@
+name: Keep Backend Warm
+
+# Render's free tier spins the backend down after ~15 minutes of inactivity,
+# which makes the first request after idle take ~50s (cold start) or time out.
+# This workflow pings the health endpoint on a schedule so the demo stays warm
+# and responds instantly whenever someone (e.g. an interviewer) opens it.
+
+on:
+  schedule:
+    # Every 10 minutes. GitHub cron can be delayed under load, so 10 min keeps
+    # us comfortably inside Render's ~15-min idle window most of the time.
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}   # lets you trigger it manually from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping /health (with cold-start retries)
+        run: |
+          URL="https://travelai-backend-xrr6.onrender.com/health"
+          for attempt in 1 2 3; do
+            # --max-time 70 tolerates a cold start that is still spinning up
+            if curl -fsS --max-time 70 "$URL"; then
+              echo ""
+              echo "Backend is awake (attempt $attempt)."
+              exit 0
+            fi
+            echo "Attempt $attempt failed; waiting 30s before retry..."
+            sleep 30
+          done
+          echo "All attempts failed — backend may be down, not just asleep."
+          # exit 0 so a transient failure does not spam you with failed-run emails
+          exit 0
