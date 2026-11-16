@@ -9,9 +9,9 @@ from backend.trips.trip_models import Trip
 from backend.trips.trip_service import (
     create_trip,
     get_user_trips,
-    save_trip_version,
     get_trip_versions,
-    get_trip_version_by_number,
+    rollback_trip,
+    update_trip_itinerary,
 )
 
 from backend.ai_adapter.planner import (
@@ -99,14 +99,10 @@ def refine_trip_api(
         user_request=data.instruction,
     )
 
-    trip.itinerary = updated_itinerary
-    db.commit()
-    db.refresh(trip)
-
-    # Save refinement as a new version.
-    save_trip_version(
+    # Update the trip and save the refinement as a new version in one commit.
+    update_trip_itinerary(
         db=db,
-        trip_id=trip.id,
+        trip=trip,
         itinerary=updated_itinerary,
         instruction=data.instruction,
     )
@@ -133,27 +129,15 @@ def rollback_trip_api(
     if not trip:
         raise HTTPException(status_code=404, detail="Trip not found")
 
-    version = get_trip_version_by_number(
+    # Restore the itinerary and record the rollback as a new version in one commit.
+    version = rollback_trip(
         db=db,
-        trip_id=trip_id,
+        trip=trip,
         version_number=data.version_number,
     )
 
     if not version:
         raise HTTPException(status_code=404, detail="Version not found")
-
-    # Roll back itinerary.
-    trip.itinerary = version.itinerary
-    db.commit()
-    db.refresh(trip)
-
-    # Save rollback as a new version.
-    save_trip_version(
-        db=db,
-        trip_id=trip.id,
-        itinerary=version.itinerary,
-        instruction=f"Rollback to version {data.version_number}",
-    )
 
     return {
         "trip_id": trip.id,
