@@ -108,7 +108,6 @@ travel-ai-agent/
 │   ├── rag_documents.py            # 21-document India travel knowledge base
 │   ├── trip_payload.py             # Budget math, normalization, fallback plan builder
 │   ├── web_search.py               # SerpAPI / Serper web search with TTL cache
-│   ├── route_optimizer.py          # Geographic cluster routing helper
 │   ├── llm/
 │   │   └── groq_llm.py             # Groq client singleton, call_groq, streaming
 │   ├── zapi/
@@ -141,8 +140,10 @@ travel-ai-agent/
 │       └── components/
 │           └── Navbar.jsx
 │
+├── tests/                          # pytest: trips, rollback, user scoping, budget ranking
 ├── cache_utils.py                  # In-memory TTL cache used across the app
 ├── requirements.txt                # Python dependencies
+├── requirements-dev.txt            # Minimal dependencies for the test suite
 └── .env                            # Environment variables (see configuration section)
 ```
 
@@ -244,6 +245,22 @@ npm run dev
 ```
 
 Open `http://localhost:5173`
+
+---
+
+## Testing
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+The tests use an in-memory SQLite database and stub the LLM planner, so they need no API keys and none of the LLM or embedding packages. They cover:
+
+- Trip creation, refinement and rollback, each saved in a single transaction so a trip and its version history can't disagree
+- Append-only version history (a rollback is recorded as a new version)
+- Per-user scoping: one user can't read, refine or roll back another user's trip
+- Budget-aware ranking: options within budget closest to the target price first, over-budget options last
 
 ---
 
