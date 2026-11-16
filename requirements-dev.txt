@@ -1,0 +1,10 @@
+# Minimal dependencies for the unit tests. The full app (LLM, RAG, embeddings)
+# needs requirements.txt; the tests stub the planner so they don't.
+fastapi
+sqlalchemy
+pydantic
+passlib[bcrypt]
+python-jose
+python-dotenv
+httpx
+pytest
